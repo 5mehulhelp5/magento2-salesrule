@@ -22,7 +22,18 @@ Create copies of existing promotional rules with a single click. Perfect for:
 - Setting up similar rules for different customer segments
 - Testing rule variations without risking the original configuration
 
-**2. Mass Actions**
+**2. Enhanced Grid**
+
+The Cart Price Rules grid gets three additional columns at a glance:
+- **Rule Type**: The discount type (e.g. Fixed, Percent, Buy X Get Y)
+- **Discount Amount**: The configured discount value
+- **Stop Rule Processing**: Whether this rule stops further rules from applying
+
+Each row also gains an inline **Duplicate** shortcut in its Actions column.
+
+![additional-grid-columns.png](docs/additional-grid-columns.png)
+
+**3. Mass Actions**
 
 Manage multiple rules at once:
 - **Mass Duplicate**: Copy several rules simultaneously
@@ -50,7 +61,11 @@ This ensures your duplicated rules are ready to customize without inheriting usa
 
 #### Traceability
 
-Duplicated rules display a read-only **"Duplicated From"** hint on their edit page, showing the ID of the original rule. On Adobe Commerce installations, both the rule ID and the staging row ID of the original rule are shown.
+Duplicated rules display a read-only **"Duplicated From"** hint on their edit page, showing the ID of the original rule.
+On Adobe Commerce installations with staging enabled, the module resolves the staging `row_id` back to the
+human-readable `rule_id` of the original rule so the reference stays meaningful across staging versions.
+
+![duplicated-from-commerce.png](docs/duplicated-from-commerce.png)
 
 ## Benefits for Store Administrators
 
@@ -85,7 +100,7 @@ Mass actions let you manage multiple rules at once - perfect for seasonal cleanu
 ![duplicate-on-edit.png](docs/duplicate-on-edit.png)
 
 1. Open any Cart Price Rule for editing
-2. Click the **Duplicate Rule** button (next to Save/Delete)
+2. Click the **Duplicate** button (next to Save/Delete)
 3. You'll be redirected to the edit page of the newly created copy
 4. Customize the copy as needed and save
 
@@ -115,6 +130,9 @@ Mass actions let you manage multiple rules at once - perfect for seasonal cleanu
 ## Installation
 
 ```bash
+# Install via Composer
+composer require schrammel-codes/magento2-salesrule
+
 # Enable the module
 bin/magento module:enable SchrammelCodes_SalesRule
 
@@ -135,7 +153,7 @@ Grant these permissions to admin roles as needed.
 ## Compatibility
 
 - **Magento 2.4.x** (Open Source and Adobe Commerce)
-- **PHP 8.1, 8.2, 8.3**
+- **PHP 8.1+**
 
 > **Adobe Commerce note:** When `Magento_SalesRuleStaging` is enabled, staging version fields are automatically reset on duplication — no companion module required.
 
@@ -143,7 +161,7 @@ Grant these permissions to admin roles as needed.
 
 All duplication behaviour is configurable via **Stores > Configuration > SchrammelCodes > Sales Rule > Duplication Settings**.
 
-> No `bin/magento setup:upgrade` is required — this is purely configuration-based.
+![configuration-options.png](docs/configuration-options.png)
 
 ### Relationship Copying
 
@@ -210,4 +228,3 @@ The following fields are unconditionally reset on every duplication and **cannot
 
 > **Adobe Commerce only:** When `Magento_SalesRuleStaging` is active, the fields `created_in`, `updated_in`, and `deactivated_in` are also unconditionally reset to their default staging version values.
 
-## Technical Information

@@ -22,7 +22,18 @@ Create copies of existing promotional rules with a single click. Perfect for:
 - Setting up similar rules for different customer segments
 - Testing rule variations without risking the original configuration
 
-**2. Mass Actions**
+**2. Enhanced Grid**
+
+The Cart Price Rules grid gets three additional columns at a glance:
+- **Rule Type**: The discount type (e.g. Fixed, Percent, Buy X Get Y)
+- **Discount Amount**: The configured discount value
+- **Stop Rule Processing**: Whether this rule stops further rules from applying
+
+Each row also gains an inline **Duplicate** shortcut in its Actions column.
+
+![additional-grid-columns.png](docs/additional-grid-columns.png)
+
+**3. Mass Actions**
 
 Manage multiple rules at once:
 - **Mass Duplicate**: Copy several rules simultaneously
@@ -35,16 +46,26 @@ Manage multiple rules at once:
 
 When you duplicate a rule, the module:
 - ✅ Copies all rule conditions and actions
-- ✅ Copies customer group associations
-- ✅ Copies website assignments
-- ✅ Copies store-specific labels
-- ✅ Adds "(Copy)" suffix to the rule name
-- 🔄 Resets coupon code
-- 🔄 Resets usage counter to zero
-- 🔄 Clears start and end dates (you set new dates for the copy)
-- 🔄 Generates a new rule ID automatically
+- ✅ Adds "(Copy)" suffix to the rule name _(overridable via Custom Fields configuration — see below)_
+- ✅ Keeps original active/inactive status _(configurable — can force enabled or disabled)_
+- ✅ Copies customer group associations _(configurable)_
+- ✅ Copies website assignments _(configurable)_
+- ✅ Copies store-specific labels _(configurable)_
+- 🔄 Resets coupon code _(always reset, cannot be overridden by configuration)_
+- 🔄 Resets usage counter to zero _(always reset, cannot be overridden by configuration)_
+- 🔄 Clears start and end dates _(always reset, cannot be overridden by configuration)_
+- 🔄 Generates a new rule ID automatically _(always reset, cannot be overridden by configuration)_
+- 🔄 Resets custom fields configured via **Stores > Configuration > SchrammelCodes > Sales Rule** _(configurable)_
 
 This ensures your duplicated rules are ready to customize without inheriting usage history or active date ranges.
+
+#### Traceability
+
+Duplicated rules display a read-only **"Duplicated From"** hint on their edit page, showing the ID of the original rule.
+On Adobe Commerce installations with staging enabled, the module resolves the staging `row_id` back to the
+human-readable `rule_id` of the original rule so the reference stays meaningful across staging versions.
+
+![duplicated-from-commerce.png](docs/duplicated-from-commerce.png)
 
 ## Benefits for Store Administrators
 
@@ -79,7 +100,7 @@ Mass actions let you manage multiple rules at once - perfect for seasonal cleanu
 ![duplicate-on-edit.png](docs/duplicate-on-edit.png)
 
 1. Open any Cart Price Rule for editing
-2. Click the **Duplicate Rule** button (next to Save/Delete)
+2. Click the **Duplicate** button (next to Save/Delete)
 3. You'll be redirected to the edit page of the newly created copy
 4. Customize the copy as needed and save
 
@@ -109,6 +130,9 @@ Mass actions let you manage multiple rules at once - perfect for seasonal cleanu
 ## Installation
 
 ```bash
+# Install via Composer
+composer require schrammel-codes/magento2-salesrule
+
 # Enable the module
 bin/magento module:enable SchrammelCodes_SalesRule
 
@@ -120,18 +144,87 @@ bin/magento cache:clean
 ```
 ### Permissions
 
-The module adds a new ACL resource:
+The module adds two ACL resources:
 - `SchrammelCodes_SalesRule::quote_duplicate` - Permission to duplicate cart price rules
+- `SchrammelCodes_SalesRule::config` - Permission to manage the module configuration
 
-Grant this permission to admin roles that should be able to duplicate promotional rules.
+Grant these permissions to admin roles as needed.
 
 ## Compatibility
 
-- **Magento 2.4.x** (Open Source)
-- **PHP 8.1, 8.2, 8.3**
+- **Magento 2.4.x** (Open Source and Adobe Commerce)
+- **PHP 8.1+**
 
-> ### For Magento Commerce installations
-> To ensure proper reset of staging preview data, install the companion module **SchrammelCodes_SalesRuleCommerce**
-> to ensure proper handling of staging fields.
+> **Adobe Commerce note:** When `Magento_SalesRuleStaging` is enabled, staging version fields are automatically reset on duplication — no companion module required.
 
-## Technical Information
+## Duplication Configuration
+
+All duplication behaviour is configurable via **Stores > Configuration > SchrammelCodes > Sales Rule > Duplication Settings**.
+
+![configuration-options.png](docs/configuration-options.png)
+
+### Relationship Copying
+
+Control whether each type of association is carried over to the duplicate:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| **Duplicate Active Status** | Keep as is | Set the active/inactive status of duplicated rules: keep the original value, always disable, or always enable |
+| **Copy Website Associations** | Yes | Copy which websites the rule is assigned to |
+| **Copy Customer Group Associations** | Yes | Copy which customer groups the rule applies to |
+| **Copy Store Labels** | Yes | Copy store-specific rule name translations |
+
+Set any of these to **No** if you prefer the duplicate to start without those associations, requiring you to assign them explicitly.
+
+### Custom Fields to Reset
+
+Some Magento installations add extra columns to the `salesrule` database table (for example, fields added by custom modules or third-party integrations). By default, these columns are copied verbatim when a rule is duplicated.
+
+The **Custom Fields to Reset on Duplication** table lets you declare which columns should be reset instead:
+
+| Column                                 | Description |
+|----------------------------------------|-------------|
+| **Field Name (DB Column)**             | The exact column name in the `salesrule` table |
+| **Reset Value (leave empty for "NULL")** | The value to set on the duplicate. Leave empty to reset to `NULL`. |
+
+Click **Add Field** to add a row, then **Save Config**.
+
+#### Example
+
+To reset a custom field called `my_custom_field` to `NULL` on every duplication:
+
+| Field Name | Reset Value |
+|------------|-------------|
+| `my_custom_field` | _(empty)_ |
+
+To reset it to a fixed placeholder value instead:
+
+| Field Name | Reset Value |
+|------------|-------------|
+| `my_custom_field` | `PENDING` |
+
+#### Overriding the rule name suffix
+
+By default, duplicated rules get `" (Copy)"` appended to their name. You can override this by adding `name` as a custom field reset:
+
+| Field Name | Reset Value |
+|------------|-------------|
+| `name` | _(empty — sets name to NULL)_ |
+| `name` | `My Custom Suffix` |
+
+> **Note:** The reset value replaces the entire name, not just the suffix. If you want a custom suffix you will need to set a static value; dynamic name construction is not supported.
+
+#### Fields that are always reset
+
+The following fields are unconditionally reset on every duplication and **cannot be overridden** by this configuration, even if you add them to the table above:
+
+| Field | Always reset to |
+|-------|----------------|
+| `rule_id` | _(new auto-generated ID)_ |
+| `from_date` | `NULL` |
+| `to_date` | `NULL` |
+| `coupon_code` | `NULL` |
+| `times_used` | `0` |
+
+> **Adobe Commerce only:** When `Magento_SalesRuleStaging` is active, the fields `created_in`, `updated_in`, and `deactivated_in` are also unconditionally reset to their default staging version values.
+
